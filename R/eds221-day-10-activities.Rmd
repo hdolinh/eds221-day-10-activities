@@ -1,0 +1,104 @@
+---
+title: "EDS 221 Day 10 Activities"
+author: "Halina Do-Linh"
+date: "8/20/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(janitor)
+library(here)
+```
+
+## Last Task & Activities Assignment for EDS 221
+
+Read in both data sets
+
+```{r}
+ice_data<- read_csv(here("data", "ice-data.csv"), na = c("-999", "NaN"))
+
+meteor_data <- read_csv(here("data", "meteor-data.csv"))
+```
+
+
+Create a visualization that compares ice duration across different lakes in the Madison Lake Area. Include both the actual ice duration values and some representation of summary statistics for each lake. Careful if you use a boxplot over a jitter or beeswarm - what values might be doubly represented? Can you find an argument that would help you remove those from the boxplot?
+
+```{r}
+ggplot(data = ice_data, aes(x = lakeid, y = ice_duration)) +
+  geom_jitter() +
+  geom_boxplot(outlier.shape = NA)
+
+# used outlier.shape = NA to remove values that are doubly represented 
+```
+
+Find the mean ice cover duration in Madison Lake Area by year (i.e., you’ll only be grouping by the year variable here). Understanding check: what are you finding the mean of here? Why are there multiple observations for each year?)
+
+```{r}
+ice_mean <- ice_data %>% 
+  filter(!is.na(ice_duration)) %>% 
+  group_by(year4) %>% 
+  summarize(mean = mean (ice_duration))
+```
+
+Create an exploratory visualization of mean ice cover duration by year for the Madison Lake Area. Add a sentence or two below this exploratory graph describing the overall trend(s) you observe.
+
+```{r}
+
+ggplot(data = ice_mean, aes(x  = year4, y = mean)) +
+  geom_point()
+
+```
+
+This exploratory graph shows a slight negative correlation of mean ice duration over year, but majority of of the trend is variable across all lake sites. 
+
+Find the mean air temperature (using the daily average air temperature - adjusted) in Madison Lake Area by year using only observations from winter months (December, January, February)
+```{r}
+mean_at <- meteor_data %>% 
+  filter(month %in% c(1, 2, 12)) %>% 
+  group_by(month, year4) %>% 
+  summarize(mean_at = mean(ave_air_temp_adjusted))
+  
+#use %in% instead of ==, use == if you are only filtering for one value
+  
+```
+
+Create an exploratory visualization of mean winter temperatures for the Madison Lake Area. Add a sentence or two below this exploratory graph describing the overall trend(s) you observe.
+```{r}
+ggplot(data = mean_at, aes(x = month, y = mean_at)) +
+  geom_point(aes(color = month))
+```
+The mean daily average air temperature is lowest in January and is highest in December. 
+
+
+Join the mean winter air temperatures to the mean ice cover duration data you found above
+```{r}
+full_join_ice <- full_join(mean_at, ice_mean, by = "year4")
+
+full_join_ice
+```
+
+Create an exploratory scatterplot of mean winter temperatures versus mean ice duration. Add a sentence or two below this exploratory graph describing the overall trend(s) you observe.
+
+```{r}
+ggplot(data = full_join_ice, aes(x = mean, y = mean_at)) +
+  geom_point(aes(color = month)) +
+  labs(x = "Mean ice duration", y = "Mean Winter Temps")
+```
+Overall trends are variable across all winter months. There are slightly warmer air temps in January through April.
+
+
+Explore thaw dates since 1970. Create a subset of the ice cover duration data since 1970 (ok to include 1970), then convert the ice_off column to a Date. Use lubridate::yday() to pull the numeric day of the year from that Date. Create an exploratory plot of the ice off day (numeric day-of-the-year) from 1970 - present. Add a sentence or two below this exploratory graph describing the overall trend(s) you observe.
+
+```{r}
+
+ice_thaw_1970 <- ice_data %>% 
+  filter(year4 >= 1970) %>% 
+  mutate(ice_off = lubridate::ymd(ice_off)) %>% 
+  mutate(ice_off_yd = lubridate::yday(ice_off))
+
+ggplot(data = ice_thaw_1970, aes(x = ice_off_yd)) +
+  geom_histogram()
+```
+Trends seen in the histogram are that majority of sampling take place between the 80th day of the year through the 100th day of the year. There is also a lot of sampling that takes place at approximately the 74th day of the day. 
